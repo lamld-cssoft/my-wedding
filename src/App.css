@@ -1,0 +1,151 @@
+.page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 20px 56px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #7f7f89;
+}
+
+h1 {
+  margin: 10px 0 0;
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  font-weight: 600;
+  color: #202026;
+}
+
+.state {
+  text-align: center;
+  margin: 28px 0;
+  color: #3d3d45;
+}
+
+.state.error {
+  color: #c33b3b;
+}
+
+.grid {
+  column-count: 4;
+  column-gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    column-count: 3;
+  }
+}
+
+@media (max-width: 760px) {
+  .grid {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 520px) {
+  .grid {
+    column-count: 1;
+  }
+}
+
+.card {
+  break-inside: avoid;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(20, 20, 28, 0.1);
+  background: #fff;
+}
+
+.card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.photo-trigger {
+  display: block;
+  width: 100%;
+  cursor: zoom-in;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.lightbox-content {
+  max-width: min(92vw, 1280px);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.lightbox-content img {
+  max-width: 100%;
+  max-height: calc(92vh - 64px);
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.nav-btn {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  width: 48px;
+  height: 48px;
+}
+
+.nav-btn:hover,
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.24) !important;
+}
+
+.close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+
+.download-btn {
+  text-transform: none !important;
+  font-weight: 600 !important;
+}
+
+@media (max-width: 760px) {
+  .lightbox {
+    gap: 8px;
+  }
+
+  .nav-btn {
+    position: absolute;
+    bottom: 18px;
+  }
+
+  .prev-btn {
+    left: 20px;
+  }
+
+  .next-btn {
+    right: 20px;
+  }
+}
