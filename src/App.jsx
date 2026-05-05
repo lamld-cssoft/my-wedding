@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import Button from '@mui/material/Button'
 import ButtonBase from '@mui/material/ButtonBase'
+import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
+import Skeleton from '@mui/material/Skeleton'
 import CloseIcon from '@mui/icons-material/Close'
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
@@ -14,7 +16,7 @@ const configError = !listUrl ? 'Thiếu VITE_CLOUDINARY_LIST_URL trong file .env
 
 function buildDeliveryUrl(resource, transformation) {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-  if (!cloudName || !resource.public_id) return ''
+  if (!cloudName || !resource.public_id) return resource.secure_url || ''
 
   const extension = resource.format ? `.${resource.format}` : ''
   const version = resource.version ? `v${resource.version}/` : ''
@@ -22,8 +24,11 @@ function buildDeliveryUrl(resource, transformation) {
 }
 
 function buildImageUrl(resource) {
-  if (resource.secure_url) return resource.secure_url
-  return buildDeliveryUrl(resource, 'f_auto,q_auto')
+  return buildDeliveryUrl(resource, 'f_auto,q_auto,dpr_auto,c_limit,w_1800')
+}
+
+function buildGridImageUrl(resource) {
+  return buildDeliveryUrl(resource, 'f_auto,q_auto:eco,dpr_auto,c_limit,w_720')
 }
 
 function buildDownloadUrl(resource) {
@@ -36,6 +41,8 @@ function App() {
   const [loading, setLoading] = useState(Boolean(listUrl))
   const [error, setError] = useState(configError)
   const [activeIndex, setActiveIndex] = useState(-1)
+  const [loadedPhotoIds, setLoadedPhotoIds] = useState({})
+  const [lightboxImageLoading, setLightboxImageLoading] = useState(true)
 
   useEffect(() => {
     if (!listUrl) return
@@ -77,15 +84,27 @@ function App() {
   )
   const activePhoto = activeIndex >= 0 ? sortedPhotos[activeIndex] : null
 
+  const openAtIndex = (index) => {
+    setLightboxImageLoading(true)
+    setActiveIndex(index)
+  }
+
+  const changeActiveImage = (step) => {
+    setLightboxImageLoading(true)
+    setActiveIndex((current) => (current + step + sortedPhotos.length) % sortedPhotos.length)
+  }
+
   useEffect(() => {
     if (!activePhoto) return
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') setActiveIndex(-1)
       if (event.key === 'ArrowRight') {
+        setLightboxImageLoading(true)
         setActiveIndex((current) => (current + 1) % sortedPhotos.length)
       }
       if (event.key === 'ArrowLeft') {
+        setLightboxImageLoading(true)
         setActiveIndex((current) => (current - 1 + sortedPhotos.length) % sortedPhotos.length)
       }
     }
@@ -94,43 +113,51 @@ function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [activePhoto, sortedPhotos.length])
 
-  const showNext = () => {
-    setActiveIndex((current) => (current + 1) % sortedPhotos.length)
-  }
+  const showNext = () => changeActiveImage(1)
 
-  const showPrev = () => {
-    setActiveIndex((current) => (current - 1 + sortedPhotos.length) % sortedPhotos.length)
-  }
+  const showPrev = () => changeActiveImage(-1)
 
   return (
     <main className="page">
       <header className="hero">
-        <p className="eyebrow">Cloudinary Photo Gallery</p>
+        <p className="eyebrow">My Wedding</p>
         <h1>{galleryTitle}</h1>
       </header>
 
-      {loading && <p className="state">Đang tải ảnh...</p>}
+      {loading && (
+        <div className="loading-wrap">
+          <CircularProgress size={30} />
+          <p>Đang chuẩn bị album...</p>
+        </div>
+      )}
       {error && !loading && <p className="state error">{error}</p>}
 
       {!loading && !error && (
         <section className="grid">
           {sortedPhotos.map((photo, index) => {
-            const imageUrl = buildImageUrl(photo)
+            const imageUrl = buildGridImageUrl(photo)
             if (!imageUrl) return null
+            const photoId = photo.asset_id || photo.public_id
+            const isLoaded = Boolean(loadedPhotoIds[photoId])
 
             return (
-              <article className="card" key={photo.asset_id || photo.public_id}>
+              <article className="card" key={photoId}>
                 <ButtonBase
                   className="photo-trigger"
-                  onClick={() => setActiveIndex(index)}
+                  onClick={() => openAtIndex(index)}
                   aria-label="Xem ảnh"
                 >
+                  {!isLoaded && <Skeleton variant="rectangular" className="card-skeleton" animation="wave" />}
                   <img
                     src={imageUrl}
                     alt={photo.public_id || 'Wedding photo'}
                     loading="lazy"
                     width={photo.width}
                     height={photo.height}
+                    className={isLoaded ? 'photo is-loaded' : 'photo'}
+                    onLoad={() => {
+                      setLoadedPhotoIds((current) => ({ ...current, [photoId]: true }))
+                    }}
                   />
                 </ButtonBase>
               </article>
@@ -162,7 +189,17 @@ function App() {
             <CloseIcon />
           </IconButton>
           <div className="lightbox-content" onClick={(event) => event.stopPropagation()}>
-            <img src={buildImageUrl(activePhoto)} alt={activePhoto.public_id || 'Wedding photo'} />
+            {lightboxImageLoading && (
+              <div className="lightbox-loading">
+                <CircularProgress />
+              </div>
+            )}
+            <img
+              src={buildImageUrl(activePhoto)}
+              alt={activePhoto.public_id || 'Wedding photo'}
+              className={lightboxImageLoading ? 'lightbox-image is-hidden' : 'lightbox-image'}
+              onLoad={() => setLightboxImageLoading(false)}
+            />
             <Button
               className="download-btn"
               variant="contained"
