@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import Button from '@mui/material/Button'
 import ButtonBase from '@mui/material/ButtonBase'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
@@ -28,7 +27,7 @@ function buildImageUrl(resource) {
 }
 
 function buildGridImageUrl(resource) {
-  return buildDeliveryUrl(resource, 'f_auto,q_auto:eco,dpr_auto,c_limit,w_720')
+  return buildDeliveryUrl(resource, 'f_auto,q_auto:eco,dpr_auto,c_fill,ar_3:4,g_auto,w_640')
 }
 
 function buildDownloadUrl(resource) {
@@ -82,6 +81,34 @@ function App() {
       ),
     [photos]
   )
+  const galleryRows = useMemo(() => {
+    const rows = []
+    let cursor = 0
+
+    while (cursor < sortedPhotos.length) {
+      const remaining = sortedPhotos.length - cursor
+      let rowSize
+
+      if (remaining <= 3) {
+        rowSize = remaining
+      } else if (remaining === 4) {
+        rowSize = 2
+      } else {
+        const seed = sortedPhotos[cursor].public_id || sortedPhotos[cursor].asset_id || `${cursor}`
+        const hash = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0)
+        rowSize = hash % 2 === 0 ? 2 : 3
+      }
+
+      const rowItems = sortedPhotos
+        .slice(cursor, cursor + rowSize)
+        .map((photo, offset) => ({ photo, index: cursor + offset }))
+
+      rows.push(rowItems)
+      cursor += rowSize
+    }
+
+    return rows
+  }, [sortedPhotos])
   const activePhoto = activeIndex >= 0 ? sortedPhotos[activeIndex] : null
 
   const openAtIndex = (index) => {
@@ -134,35 +161,39 @@ function App() {
 
       {!loading && !error && (
         <section className="grid">
-          {sortedPhotos.map((photo, index) => {
-            const imageUrl = buildGridImageUrl(photo)
-            if (!imageUrl) return null
-            const photoId = photo.asset_id || photo.public_id
-            const isLoaded = Boolean(loadedPhotoIds[photoId])
+          {galleryRows.map((row, rowIndex) => (
+            <div className="gallery-row" style={{ '--cols': row.length }} key={`row-${rowIndex}`}>
+              {row.map(({ photo, index }) => {
+                const imageUrl = buildGridImageUrl(photo)
+                if (!imageUrl) return null
+                const photoId = photo.asset_id || photo.public_id
+                const isLoaded = Boolean(loadedPhotoIds[photoId])
 
-            return (
-              <article className="card" key={photoId}>
-                <ButtonBase
-                  className="photo-trigger"
-                  onClick={() => openAtIndex(index)}
-                  aria-label="Xem ảnh"
-                >
-                  {!isLoaded && <Skeleton variant="rectangular" className="card-skeleton" animation="wave" />}
-                  <img
-                    src={imageUrl}
-                    alt={photo.public_id || 'Wedding photo'}
-                    loading="lazy"
-                    width={photo.width}
-                    height={photo.height}
-                    className={isLoaded ? 'photo is-loaded' : 'photo'}
-                    onLoad={() => {
-                      setLoadedPhotoIds((current) => ({ ...current, [photoId]: true }))
-                    }}
-                  />
-                </ButtonBase>
-              </article>
-            )
-          })}
+                return (
+                  <article className="card" key={photoId}>
+                    <ButtonBase
+                      className="photo-trigger"
+                      onClick={() => openAtIndex(index)}
+                      aria-label="Xem ảnh"
+                    >
+                      {!isLoaded && <Skeleton variant="rectangular" className="card-skeleton" animation="wave" />}
+                      <img
+                        src={imageUrl}
+                        alt={photo.public_id || 'Wedding photo'}
+                        loading="lazy"
+                        width={photo.width}
+                        height={photo.height}
+                        className={isLoaded ? 'photo is-loaded' : 'photo'}
+                        onLoad={() => {
+                          setLoadedPhotoIds((current) => ({ ...current, [photoId]: true }))
+                        }}
+                      />
+                    </ButtonBase>
+                  </article>
+                )
+              })}
+            </div>
+          ))}
         </section>
       )}
 
@@ -200,18 +231,17 @@ function App() {
               className={lightboxImageLoading ? 'lightbox-image is-hidden' : 'lightbox-image'}
               onLoad={() => setLightboxImageLoading(false)}
             />
-            <Button
+            <IconButton
               className="download-btn"
-              variant="contained"
-              startIcon={<DownloadIcon />}
               href={buildDownloadUrl(activePhoto)}
               download
               target="_blank"
               rel="noreferrer"
               component="a"
+              aria-label="Tải ảnh"
             >
-              Download
-            </Button>
+              <DownloadIcon />
+            </IconButton>
           </div>
           <IconButton
             className="nav-btn next-btn"
